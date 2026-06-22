@@ -7,8 +7,7 @@ services:
     branch: deployment-test
     rootDir: backend
     buildCommand: npm install && npx prisma generate
-    preDeployCommand: npx prisma migrate deploy
-    startCommand: npm start
+    startCommand: npx prisma migrate deploy && npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
