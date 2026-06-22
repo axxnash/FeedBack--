@@ -591,7 +591,7 @@ const confirmSelfPickupOrder = asyncHandler(async (req, res) => {
   });
 });
 
-const advanceMockOrderStatus = asyncHandler(async (req, res) => {
+const advanceOrderStatus = asyncHandler(async (req, res) => {
   buildListingAccess(req.user.role);
 
   const order = await prisma.order.findFirst({
@@ -625,7 +625,7 @@ const advanceMockOrderStatus = asyncHandler(async (req, res) => {
     if (!progression) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
-        "This delivery order can no longer advance to another mocked status"
+        "This delivery order can no longer advance to another status"
       );
     }
 
@@ -676,5 +676,5 @@ module.exports = {
   listOrders,
   getOrderById,
   confirmSelfPickupOrder,
-  advanceMockOrderStatus,
+  advanceOrderStatus,
 };
