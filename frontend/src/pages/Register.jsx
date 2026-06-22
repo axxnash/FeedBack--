@@ -202,6 +202,8 @@ export default function Register() {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
+    setError("");
+    setMessage("");
   };
 
   const handleFileChange = (event) => {
@@ -214,7 +216,15 @@ export default function Register() {
           : selectedFiles[0] || null,
     }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
+    setError("");
+    setMessage("");
   };
+
+  useEffect(() => {
+    setError("");
+    setMessage("");
+    setFieldErrors({});
+  }, [role]);
 
   const getFlattenedErrors = (payload) => {
     const responseErrors = payload?.errors;
