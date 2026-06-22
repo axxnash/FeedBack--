@@ -38,7 +38,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://feedback-backend-api.onrender.com/api
+        value: https://feedback-backend-api-zrlj.onrender.com/api
     routes:
       - type: rewrite
         source: /*
