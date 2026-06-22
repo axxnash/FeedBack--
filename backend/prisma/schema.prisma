@@ -69,6 +69,23 @@ enum NotificationType {
   STATUS_UPDATE
 }
 
+enum ModerationAlertStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+}
+
+enum ModerationAlertSeverity {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ModerationAlertTargetType {
+  LISTING
+  USER
+}
+
 model User {
   id                           String              @id @default(cuid())
   name                         String
@@ -240,4 +257,26 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model ModerationAlert {
+  id           String                    @id @default(cuid())
+  targetType   ModerationAlertTargetType
+  targetId     String
+  targetUserId String?
+  targetName   String
+  severity     ModerationAlertSeverity
+  status       ModerationAlertStatus     @default(OPEN)
+  issueTitle   String
+  description  String
+  reporterName String
+  actionedById String?
+  actionNotes  String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  resolvedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("moderation_alerts")
 }

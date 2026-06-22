@@ -4,33 +4,34 @@ import { apiRequest } from "../lib/api";
 import { navigateTo } from "../lib/navigation";
 import { getCurrentUserFromStorage } from "../lib/auth";
 
+const formatRelativeTime = (dateValue) => {
+  if (!dateValue) {
+    return "just now";
+  }
+
+  const diffMs = Date.now() - new Date(dateValue).getTime();
+  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+};
+
 export default function AdminControlPanel() {
   const [currentUser] = useState(() => getCurrentUserFromStorage());
   const [actionLoadingId, setActionLoadingId] = useState("");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
-  const [alerts, setAlerts] = useState([
-    {
-      id: "alert-mock-1",
-      severity: "HIGH",
-      targetType: "LISTING",
-      targetName: "Premium Medical Supplies Bulk",
-      issueTitle: "Prohibited Item Category",
-      description: "This listing contains restricted prescription items violating section 4.2 of our community distribution guidelines.",
-      reporterName: "System Flag (Automated Keyword)",
-      timeAgo: "14 minutes ago"
-    },
-    {
-      id: "alert-mock-2",
-      severity: "MEDIUM",
-      targetType: "INDIVIDUAL",
-      targetName: "Marcus Vance (Driver ID: #8841)",
-      issueTitle: "Spam / Recurrent Delivery Cancellations",
-      description: "User has accepted and subsequently dropped 4 dispatch assignments within a 2-hour window.",
-      reporterName: "Logistics Engine Monitor",
-      timeAgo: "2 hours ago"
-    }
-  ]);
+  const [message, setMessage] = useState("");
+  const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -42,11 +43,33 @@ export default function AdminControlPanel() {
       navigateTo("/");
       return;
     }
+
+    const loadAlerts = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await apiRequest("/admin/alerts");
+        setAlerts(response.data.alerts || []);
+      } catch (requestError) {
+        setError(requestError.message || "Failed to load moderation alerts.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlerts();
   }, [currentUser]);
+
+  const refreshAlerts = async () => {
+    const response = await apiRequest("/admin/alerts");
+    setAlerts(response.data.alerts || []);
+  };
 
   const handleAction = async (alertId, actionType) => {
     setActionLoadingId(`${alertId}-${actionType}`);
     setError("");
+    setMessage("");
 
     try {
       await apiRequest(`/admin/alerts/${alertId}/action`, {
@@ -56,8 +79,9 @@ export default function AdminControlPanel() {
           "Content-Type": "application/json"
         }
       });
-      
-      setAlerts((prevAlerts) => prevAlerts.filter((alert) => alert.id !== alertId));
+
+      await refreshAlerts();
+      setMessage("Moderation action completed successfully.");
     } catch (requestError) {
       setError(requestError.message || "Failed to process moderation action.");
     } finally {
@@ -89,7 +113,20 @@ export default function AdminControlPanel() {
           </div>
         )}
 
-        {alerts.length === 0 ? (
+        {message && (
+          <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-emerald-700">
+            {message}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="mt-8 rounded-[2rem] border border-[#ebefdf] bg-white px-6 py-14 text-center">
+            <p className="text-h2 text-[#223623]">Loading alerts...</p>
+            <p className="mt-3 text-body-md text-[#63705f]">
+              Pulling the latest moderation queue from the system.
+            </p>
+          </div>
+        ) : alerts.length === 0 ? (
           <div className="mt-8 rounded-[2rem] border border-dashed border-[#d5dec8] bg-white px-6 py-14 text-center">
             <p className="text-h2 text-[#223623]">All clear!</p>
             <p className="mt-3 text-body-md text-[#63705f]">
@@ -99,27 +136,31 @@ export default function AdminControlPanel() {
         ) : (
           <div className="mt-8 space-y-6">
             {alerts.map((alert) => (
-              <div 
+              <div
                 key={alert.id}
                 className="overflow-hidden rounded-[2rem] border border-[#ebefdf] bg-white p-6 shadow-[0_12px_24px_rgba(92,103,70,0.05)] flex flex-col md:flex-row md:items-start justify-between gap-6"
               >
                 <div className="space-y-3 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${
-                      alert.severity === "HIGH" 
-                        ? "bg-red-50 text-red-700 border-red-200" 
-                        : "bg-amber-50 text-amber-700 border-amber-200"
+                      alert.severity === "HIGH"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : alert.severity === "MEDIUM"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-slate-50 text-slate-700 border-slate-200"
                     }`}>
                       {alert.severity} Priority
                     </span>
                     <span className="text-xs font-medium text-[#70816c]">
-                      Reported by {alert.reporterName} • {alert.timeAgo}
+                      Reported by {alert.reporterName} • {formatRelativeTime(alert.createdAt)}
                     </span>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-lg font-bold text-[#1d3720]">{alert.issueTitle}</h3>
-                    <p className="text-sm font-semibold text-primary mt-1">Target: {alert.targetName} ({alert.targetType})</p>
+                    <p className="text-sm font-semibold text-primary mt-1">
+                      Target: {alert.targetName} ({alert.targetType})
+                    </p>
                     <p className="mt-2 text-sm leading-relaxed text-[#5b6757]">{alert.description}</p>
                   </div>
                 </div>
@@ -144,7 +185,7 @@ export default function AdminControlPanel() {
                       {actionLoadingId === `${alert.id}-BAN_USER` ? "Processing..." : "Restrict Account"}
                     </button>
                   )}
-                  
+
                   <button
                     type="button"
                     disabled={actionLoadingId === `${alert.id}-WARN_USER`}

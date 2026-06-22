@@ -1,5 +1,6 @@
 const express = require("express");
 const authRoutes = require("./authRoutes");
+const adminRoutes = require("./adminRoutes");
 const marketplaceRoutes = require("./marketplaceRoutes");
 const notificationRoutes = require("./notificationRoutes");
 const riderRoutes = require("./riderRoutes");
@@ -19,6 +20,8 @@ router.get("/", (req, res) => {
       "/api/auth/me",
       "/api/auth/pending-approvals",
       "/api/auth/users/:userId/approval",
+      "/api/admin/alerts",
+      "/api/admin/alerts/:alertId/action",
       "/api/marketplace/listings",
       "/api/marketplace/orders",
       "/api/notifications",
@@ -37,6 +40,7 @@ router.get("/health", (req, res) => {
 });
 
 router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
 router.use("/marketplace", marketplaceRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/rider", riderRoutes);
