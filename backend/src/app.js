@@ -15,6 +15,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "FeedBack backend is healthy"
+  });
+});
+
 app.use(
   "/api",
   rateLimit({
