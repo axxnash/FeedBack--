@@ -5,8 +5,13 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-on-background font-body-md;
+    overflow-x: hidden;
   }
 }
 

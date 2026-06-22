@@ -213,7 +213,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background text-on-background font-body-md">
       <header className="sticky top-0 z-50 border-b border-[#e8eddc] bg-[linear-gradient(180deg,rgba(255,252,238,0.98)_0%,rgba(248,249,244,0.96)_100%)] backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
           <button
             type="button"
             onClick={() => navigateTo("/")}
@@ -224,14 +224,14 @@ export default function LoginPage() {
               <img
                 src={logo}
                 alt="Feedback logo"
-                className="relative h-16 w-16 rounded-full border-4 border-surface-container-lowest bg-surface-container-lowest object-cover shadow-[0_14px_30px_rgba(104,97,59,0.14)] transition-transform duration-300 group-hover:scale-[1.03]"
+                className="relative h-12 w-12 rounded-full border-4 border-surface-container-lowest bg-surface-container-lowest object-cover shadow-[0_14px_30px_rgba(104,97,59,0.14)] transition-transform duration-300 group-hover:scale-[1.03] sm:h-16 sm:w-16"
               />
             </div>
-            <span className="font-display text-h2 text-primary transition-colors hover:text-[#FFA02E]">
+            <span className="font-display text-[1.4rem] text-primary transition-colors hover:text-[#FFA02E] sm:text-h2">
               FeedBack
             </span>
           </button>
-          <div className="text-right font-body-md text-body-md text-on-surface-variant">
+          <div className="ml-auto text-right font-body-md text-sm text-on-surface-variant sm:text-body-md">
             New here?
             <button
               type="button"
@@ -244,7 +244,7 @@ export default function LoginPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-12 px-6 py-12 lg:h-[calc(100vh-89px)] lg:flex-row lg:items-stretch lg:gap-8 lg:overflow-hidden lg:py-8">
+      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:h-[calc(100vh-89px)] lg:flex-row lg:items-stretch lg:gap-8 lg:overflow-hidden lg:py-8">
         <div className="hidden w-full lg:sticky lg:top-0 lg:flex lg:h-full lg:w-5/12 lg:flex-col">
           <div
             className="relative flex min-h-[640px] flex-col overflow-hidden rounded-[2.5rem] p-10 shadow-level-3 lg:h-full lg:min-h-0 lg:p-8"
