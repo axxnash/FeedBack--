@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import logo from "../assets/logo.png";
 import { apiRequest } from "../lib/api";
+import { saveAuth } from "../lib/auth";
+import { jsonRequest } from "../lib/api";
 import { navigateTo } from "../lib/navigation";
 
 const roles = [
@@ -24,6 +26,7 @@ const fileInputClassName =
   "text-body-md text-on-surface-variant file:mr-4 file:rounded-full file:border file:border-transparent file:bg-primary-container file:px-4 file:py-2 file:font-label-md file:text-label-md file:text-on-primary-container hover:file:bg-tertiary-fixed-dim";
 const primaryButtonClassName =
   "w-full flex items-center justify-center gap-xs rounded-xl bg-primary-container px-md py-sm font-label-md text-label-md text-on-primary-container border border-transparent border-b-[3px] border-on-primary-container/20 shadow-sm transition-all duration-300 ease-out-back hover:bg-tertiary-fixed-dim hover:-translate-y-[1px] hover:shadow-md active:translate-y-[2px] active:border-b-0 active:mb-[3px]";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const roleHeroContent = {
   INDIVIDUAL: {
@@ -160,6 +163,8 @@ export default function Register() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [googleReady, setGoogleReady] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -191,6 +196,7 @@ export default function Register() {
     riderLicenseDocument: null,
     riderVehicleGrantDocument: null,
   });
+  const googleButtonRef = useRef(null);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -302,6 +308,118 @@ export default function Register() {
       setSubmitting(false);
     }
   };
+
+  const finishGoogleAuth = (authData, successMessage) => {
+    saveAuth(authData);
+    setMessage(successMessage);
+    navigateTo("/marketplace");
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    if (!credential) {
+      setError("Google sign-up was cancelled. Please try again.");
+      return;
+    }
+
+    setGoogleSubmitting(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await jsonRequest("/auth/google", {
+        method: "POST",
+        body: { credential },
+      });
+
+      finishGoogleAuth(response.data, response.message);
+    } catch (requestError) {
+      setError(requestError.message || "Google sign-up failed.");
+    } finally {
+      setGoogleSubmitting(false);
+    }
+  };
+
+  const handleGoogleCredentialRef = useRef(handleGoogleCredential);
+  useEffect(() => {
+    handleGoogleCredentialRef.current = handleGoogleCredential;
+  });
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleButtonRef.current || role !== "INDIVIDUAL") {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const renderGoogleButton = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) {
+        return;
+      }
+
+      googleButtonRef.current.innerHTML = "";
+
+      if (!window.__google_initialized) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: ({ credential }) => {
+            handleGoogleCredentialRef.current(credential);
+          },
+        });
+        window.__google_initialized = true;
+      }
+
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        text: "signup_with",
+        shape: "pill",
+        width: Math.max(
+          240,
+          Math.min(googleButtonRef.current.parentElement?.clientWidth ?? 360, 360)
+        ),
+      });
+
+      setGoogleReady(true);
+    };
+
+    const handleLoad = () => {
+      renderGoogleButton();
+    };
+
+    const handleError = () => {
+      if (!cancelled) {
+        setGoogleReady(false);
+        setError("Google sign-up could not be loaded right now.");
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    let script = document.querySelector('script[data-google-identity="true"]');
+
+    if (!script) {
+      script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.dataset.googleIdentity = "true";
+      document.head.appendChild(script);
+    }
+
+    script.addEventListener("load", handleLoad);
+    script.addEventListener("error", handleError);
+
+    return () => {
+      cancelled = true;
+      script?.removeEventListener("load", handleLoad);
+      script?.removeEventListener("error", handleError);
+    };
+  }, [role]);
 
   const currentHero = roleHeroContent[role];
 
@@ -915,6 +1033,37 @@ export default function Register() {
               {submitting ? "Submitting..." : `Register as ${role}`}
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
+
+            {GOOGLE_CLIENT_ID && role === "INDIVIDUAL" && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-outline-variant/40"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-surface-container-lowest px-sm font-caption text-caption uppercase tracking-wider text-on-surface-variant">
+                      Or sign up with Google
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-sm">
+                  <div className="flex min-h-[44px] items-center justify-center rounded-lg border border-surface-container-high/70 bg-surface px-sm py-sm">
+                    <div ref={googleButtonRef} className="flex w-full justify-center" />
+                  </div>
+                  {!googleReady && (
+                    <p className="text-center text-xs text-on-surface-variant">
+                      {googleSubmitting
+                        ? "Finishing Google sign-up..."
+                        : "Loading Google sign-up..."}
+                    </p>
+                  )}
+                  <p className="text-center text-xs text-on-surface-variant">
+                    Google sign-up currently creates an Individual account.
+                  </p>
+                </div>
+              </>
+            )}
           </form>
         </div>
         </div>
